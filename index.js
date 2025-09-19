@@ -13,7 +13,7 @@ require("./config/db")();
 
 // Middleware
 app.use(cors({
-  origin:  "https://meesho-frontend-no7l.vercel.app", // frontend URL
+  origin:  "https://mvc-meesho-frontend.vercel.app", // frontend URL
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
