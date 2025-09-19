@@ -9,7 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // DB connection
-require("./config/db")();
+
 
 // ===== Middleware =====
 app.use(express.json());
