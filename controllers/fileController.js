@@ -9,6 +9,7 @@ const upload = multer({ dest: "uploads/" });
 
 let latestData = null;
 
+// ===== Status List =====
 const statusList = [
   "all",
   "rto",
@@ -21,6 +22,7 @@ const statusList = [
   "supplier_discounted_price",
 ];
 
+// ===== Categorize Rows =====
 function categorizeRows(rows) {
   const categories = {};
   statusList.forEach((status) => (categories[status] = []));
@@ -47,7 +49,7 @@ function categorizeRows(rows) {
     const discountedPrice = parsePrice(
       getColumnValue(row, [
         "Supplier Discounted Price (Incl GST and Commission)",
-        "Supplier Discounted Price (Incl GST and Commision)",
+        "Supplier Discounted Price (Incl GST and Commision)", // typo handled
         "Supplier Discounted Price",
         "Discounted Price",
       ])
@@ -57,7 +59,7 @@ function categorizeRows(rows) {
     totalSupplierDiscountedPrice += discountedPrice;
 
     if (status.includes("delivered")) {
-      sellInMonthProducts += 1;
+      sellInMonthProducts++;
       deliveredSupplierDiscountedPriceTotal += discountedPrice;
     }
 
@@ -89,7 +91,7 @@ function categorizeRows(rows) {
     deliveredSupplierDiscountedPriceTotal - sellInMonthProducts * 500;
 
   const profitPercent =
-    sellInMonthProducts !== 0
+    sellInMonthProducts > 0
       ? (totalProfit / (sellInMonthProducts * 500)) * 100
       : 0;
 
@@ -106,6 +108,7 @@ function categorizeRows(rows) {
   return categories;
 }
 
+// ===== Save Data =====
 function saveData(rows, res) {
   if (!rows || !rows.length) {
     return res.status(400).json({ message: "No data to save" });
@@ -113,7 +116,7 @@ function saveData(rows, res) {
 
   const categorized = categorizeRows(rows);
 
-  // build profit graph
+  // Build profit graph
   const profitByDate = {};
   rows.forEach((row) => {
     const status = (row["Reason for Credit Entry"] || "").toLowerCase().trim();
@@ -124,6 +127,7 @@ function saveData(rows, res) {
       row["Date"] ||
       row["Created At"] ||
       row["Delivered Date"];
+
     if (!dateKey) return;
 
     const date = new Date(dateKey).toISOString().split("T")[0];
@@ -145,13 +149,10 @@ function saveData(rows, res) {
     profitByDate[date].count += 1;
   });
 
-  const profitGraphArray = Object.keys(profitByDate).map((date) => {
-    const { total, count } = profitByDate[date];
-    return {
-      date,
-      profit: total - count * 500,
-    };
-  });
+  const profitGraphArray = Object.entries(profitByDate).map(([date, { total, count }]) => ({
+    date,
+    profit: total - count * 500,
+  }));
 
   latestData = {
     submittedAt: new Date(),
@@ -165,6 +166,7 @@ function saveData(rows, res) {
   return res.json({ ...categorized, profitByDate: profitGraphArray });
 }
 
+// ===== Upload File =====
 exports.uploadFile = [
   upload.single("file"),
   (req, res) => {
@@ -185,7 +187,7 @@ exports.uploadFile = [
           })
           .on("error", (err) => {
             console.error("❌ CSV parse error:", err.message);
-            fs.unlinkSync(file.path);
+            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
             return res.status(500).json({ error: "CSV parse failed" });
           });
       } else if (ext === ".xlsx" || ext === ".xls") {
@@ -206,11 +208,13 @@ exports.uploadFile = [
   },
 ];
 
+// ===== Get Profit Graph =====
 exports.getProfitGraph = (req, res) => {
   if (!latestData) return res.status(404).json({ error: "No data found" });
   res.json(latestData.profitByDate || []);
 };
 
+// ===== Filter By Sub Order =====
 exports.filterBySubOrder = (req, res) => {
   if (!latestData) return res.status(404).json({ error: "No data found" });
 
@@ -255,8 +259,9 @@ exports.filterBySubOrder = (req, res) => {
     subOrderNo,
     listedPrice,
     discountedPrice,
-    profit: discountedPrice - 500, // ✅ fixed formula
+    profit: discountedPrice - 500, // ✅ Corrected formula
   });
 };
 
+// ===== Export Latest Data =====
 exports._getLatestData = () => latestData;
