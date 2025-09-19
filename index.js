@@ -17,6 +17,10 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
+
+app.use(cors({
+  origin: "*", // allow all origins for testing; restrict in production
+}))
 app.use(express.json());
 
 // Routes
