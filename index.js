@@ -15,13 +15,26 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 
 // CORS (only one config, avoid duplicate)
+const allowedOrigins = [
+  "https://mvc-meesho-frontend.vercel.app", // deployed frontend
+                   // local frontend
+];
+
 app.use(
   cors({
-    origin: "https://mvc-meesho-frontend.vercel.app", // fallback for local dev
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps, curl, postman)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
 );
+
 
 // ===== Routes =====
 const authRoutes = require("./routes/authRoutes");
